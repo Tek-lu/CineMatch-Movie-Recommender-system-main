@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatch - MLP Neural Network Predictions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Neural network animated background */
+        .neural-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+
+        .neuron {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            animation: neuronPulse 3s ease-in-out infinite;
+        }
+
+        .connection {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            animation: dataFlow 4s linear infinite;
+        }
+
+        @keyframes neuronPulse {
+            0%, 100% { transform: scale(1); opacity: 0.3; }
+            50% { transform: scale(1.5); opacity: 0.8; }
+        }
+
+        @keyframes dataFlow {
+            0% { opacity: 0; }
+            50% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Header section */
+        .header {
+            background: rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(15px);
+            padding: 20px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+        }
+
+        .logo {
+            width: 220px;
+            height: auto;
+            transition: all 0.3s ease;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+        }
+
+        .logo:hover {
+            transform: scale(1.05) rotate(2deg);
+        }
+
+        /* Main content */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .title {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 15px;
+            background-size: 400% 400%;
+            -webkit-text-fill-color: rgb(255, 255, 255);
+            animation: gradientShift 4s ease-in-out infinite;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.3rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        /* Form styling */
+        .form-container {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            border-radius: 25px;
+            padding: 40px;
+            margin-bottom: 50px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .form-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            animation: formShimmer 3s linear infinite;
+        }
+
+        @keyframes formShimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+
+        .form-container:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 1;
+        }
+
+        label {
+            display: block;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            font-weight: 500;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 18px 25px;
+            font-size: 1.2rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            backdrop-filter: blur(10px);
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #4ecdc4;
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+            box-shadow: 0 0 30px rgba(78, 205, 196, 0.3);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+            border: none;
+            padding: 18px 50px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            border-radius: 20px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 8px 25px rgba(78, 205, 196, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 15px 35px rgba(78, 205, 196, 0.4);
+        }
+
+        /* Section styling */
+        .section {
+            margin-bottom: 60px;
+            opacity: 0;
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .section:nth-child(2) { animation-delay: 0.2s; }
+        .section:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .watched-title {
+            color: #feca57;
+            text-shadow: 0 3px 6px rgba(254, 202, 87, 0.3);
+        }
+
+        .recommendations-title {
+            color: #4ecdc4;
+            text-shadow: 0 3px 6px rgba(78, 205, 196, 0.3);
+        }
+
+        /* Movies grid */
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 35px;
+            margin-top: 40px;
+        }
+
+        .movie-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 25px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .movie-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .movie-card:hover::before {
+            left: 100%;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-15px) scale(1.05);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.3);
+        }
+
+        .watched-card {
+            border-color: rgba(254, 202, 87, 0.4);
+        }
+
+        .watched-card:hover {
+            border-color: #feca57;
+            box-shadow: 0 20px 50px rgba(254, 202, 87, 0.2);
+        }
+
+        .recommended-card {
+            border-color: rgba(78, 205, 196, 0.4);
+        }
+
+        .recommended-card:hover {
+            border-color: #4ecdc4;
+            box-shadow: 0 20px 50px rgba(78, 205, 196, 0.2);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 280px;
+            object-fit: cover;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .movie-card:hover .movie-poster {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-badge {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: inline-block;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        .watched-badge {
+            background: linear-gradient(45deg, #feca57, #ff9ff3);
+        }
+
+        .recommended-badge {
+            background: linear-gradient(45deg, #4ecdc4, #44a08d);
+        }
+
+        @keyframes badgePulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .rank-badge {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+            animation: rankFloat 3s ease-in-out infinite;
+        }
+
+        @keyframes rankFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        /* Loading animation */
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .neural-loader {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            position: relative;
+        }
+
+        .neural-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            animation: neuralNetwork 2s ease-in-out infinite;
+        }
+
+        .neural-node:nth-child(1) { top: 0; left: 50%; animation-delay: 0s; }
+        .neural-node:nth-child(2) { top: 50%; left: 0; animation-delay: 0.3s; }
+        .neural-node:nth-child(3) { top: 50%; right: 0; animation-delay: 0.6s; }
+        .neural-node:nth-child(4) { bottom: 0; left: 50%; animation-delay: 0.9s; }
+
+        @keyframes neuralNetwork {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.5); opacity: 1; }
+        }
+
+        /* Error messages */
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid rgba(255, 107, 107, 0.5);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            animation: errorSlide 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        @keyframes errorSlide {
+            from { opacity: 0; transform: translateX(-20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2.5rem;
+            }
+            
+            .form-container {
+                padding: 25px;
+            }
+            
+            .movies-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 25px;
+            }
+
+            .movie-poster {
+                height: 220px;
+            }
+        }
+
+        /* Floating elements */
+        .floating-icon {
+            position: absolute;
+            font-size: 2.5rem;
+            animation: floatAround 6s ease-in-out infinite;
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        @keyframes floatAround {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            25% { transform: translateY(-20px) rotate(90deg); }
+            50% { transform: translateY(-10px) rotate(180deg); }
+            75% { transform: translateY(-25px) rotate(270deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Neural network background -->
+    <div class="neural-bg" id="neuralBg"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <img src="/static/logo.png" alt="CineMatch Logo" class="logo">
+    </div>
+
+    <!-- Main content -->
+    <div class="container">
+        <h1 class="title">MLP Neural Network Predictions</h1>
+        <p class="subtitle">🧠 Advanced Multi-Layer Perceptron AI for intelligent movie recommendations</p>
+
+        <!-- Form section -->
+        <div class="form-container">
+            <form action="result4" method="post" id="mlpForm">
+                <div class="form-group">
+                    <label for="user_id">
+                        🦸🏻‍♀️ Enter your User ID for AI-powered recommendations 🦸🏻‍♂️
+                    </label>
+                    <input type="text" name="user_id" id="user_id" placeholder="Enter your user ID..." required>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    🚀 Activate Neural Network
+                </button>
+
+                <!-- Flash messages -->
+                {% for message in get_flashed_messages() %}
+                    <div class="error-message">{{ message }}</div>
+                {% endfor %}
+            </form>
+
+            <!-- Loading animation -->
+            <div class="loading" id="loading">
+                <div class="neural-loader">
+                    <div class="neural-node"></div>
+                    <div class="neural-node"></div>
+                    <div class="neural-node"></div>
+                    <div class="neural-node"></div>
+                </div>
+                <p>Neural network processing your preferences...</p>
+            </div>
+        </div>
+
+        <!-- Watched movies section -->
+        {% if watched_movies %}
+        <div class="section">
+            <h2 class="section-title watched-title">⭐ Your Highly Rated Movies</h2>
+            <div class="movies-grid">
+                {% for i in range(5) %}
+                {% if i < watched_movies|length %}
+                <div class="movie-card watched-card" onclick="showMovieDetails('{{ watched_movies[i] }}', 'watched')">
+                    <div class="rank-badge">{{ i + 1 }}</div>
+                    {% if watched_poster_urls[i] %}
+                        <img src="{{ watched_poster_urls[i] }}" alt="{{ watched_movies[i] }}" class="movie-poster">
+                    {% else %}
+                        <div class="movie-poster" style="background: linear-gradient(45deg, #feca57, #ff9ff3); display: flex; align-items: center; justify-content: center; font-size: 4rem;">⭐</div>
+                    {% endif %}
+                    <div class="movie-title">{{ watched_movies[i] }}</div>
+                    <div class="movie-badge watched-badge">⭐ Highly Rated</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Recommended movies section -->
+        {% if movies %}
+        <div class="section">
+            <h2 class="section-title recommendations-title">🎯 AI Neural Network Recommendations</h2>
+            <div class="movies-grid">
+                {% for i in range(5) %}
+                {% if i < movies|length %}
+                <div class="movie-card recommended-card" onclick="showMovieDetails('{{ movies[i] }}', 'recommended')">
+                    <div class="rank-badge">{{ i + 1 }}</div>
+                    {% if poster_urls[i] %}
+                        <img src="{{ poster_urls[i] }}" alt="{{ movies[i] }}" class="movie-poster">
+                    {% else %}
+                        <div class="movie-poster" style="background: linear-gradient(45deg, #4ecdc4, #44a08d); display: flex; align-items: center; justify-content: center; font-size: 4rem;">🎬</div>
+                    {% endif %}
+                    <div class="movie-title">{{ movies[i] }}</div>
+                    <div class="movie-badge recommended-badge">🧠 AI Recommended</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Create neural network background
+        function createNeuralNetwork() {
+            const neuralBg = document.getElementById('neuralBg');
+            const nodeCount = 30;
+            const connectionCount = 20;
+
+            // Create neurons
+            for (let i = 0; i < nodeCount; i++) {
+                const neuron = document.createElement('div');
+                neuron.classList.add('neuron');
+                neuron.style.left = Math.random() * 100 + '%';
+                neuron.style.top = Math.random() * 100 + '%';
+                neuron.style.animationDelay = Math.random() * 3 + 's';
+                neuralBg.appendChild(neuron);
+            }
+
+            // Create connections
+            for (let i = 0; i < connectionCount; i++) {
+                const connection = document.createElement('div');
+                connection.classList.add('connection');
+                connection.style.left = Math.random() * 100 + '%';
+                connection.style.top = Math.random() * 100 + '%';
+                connection.style.width = Math.random() * 200 + 100 + 'px';
+                connection.style.animationDelay = Math.random() * 4 + 's';
+                connection.style.transform = `rotate(${Math.random() * 360}deg)`;
+                neuralBg.appendChild(connection);
+            }
+        }
+
+        // Create floating icons
+        function createFloatingIcons() {
+            const icons = ['🧠', '⚡', '🔮', '🎯', '🚀', '💫', '🌟'];
+            const container = document.querySelector('.container');
+
+            setInterval(() => {
+                const icon = document.createElement('div');
+                icon.classList.add('floating-icon');
+                icon.textContent = icons[Math.floor(Math.random() * icons.length)];
+                icon.style.left = Math.random() * 90 + '%';
+                icon.style.top = Math.random() * 80 + '%';
+                icon.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(icon);
+
+                setTimeout(() => {
+                    icon.remove();
+                }, 6000);
+            }, 4000);
+        }
+
+        // Form submission with loading
+        document.getElementById('mlpForm').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+        });
+
+        // Movie details popup
+        function showMovieDetails(movieTitle, type) {
+            const typeText = type === 'watched' ? 'You rated this movie highly!' : 'Recommended by AI Neural Network!';
+            const emoji = type === 'watched' ? '⭐' : '🧠';
+            
+            alert(`${emoji} ${movieTitle}\n\n${typeText}\n\nThis ${type === 'watched' ? 'rating was analyzed' : 'recommendation was generated'} using Multi-Layer Perceptron neural network technology.`);
+        }
+
+        // Enhanced input interactions
+        const userInput = document.getElementById('user_id');
+        
+        userInput.addEventListener('focus', function() {
+            this.style.boxShadow = '0 0 30px rgba(78, 205, 196, 0.4)';
+            this.style.transform = 'scale(1.02)';
+        });
+
+        userInput.addEventListener('blur', function() {
+            this.style.boxShadow = 'none';
+            this.style.transform = 'scale(1)';
+        });
+
+        // Add typing effect for placeholder
+        userInput.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                this.style.borderColor = '#4ecdc4';
+            } else {
+                this.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+            }
+        });
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', function() {
+            createNeuralNetwork();
+            createFloatingIcons();
+            
+            // Smooth scroll to sections when results are loaded
+        });
+
+        // Add scroll reveal animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // Observe all movie cards for scroll animations
+        document.querySelectorAll('.movie-card').forEach(card => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(30px)';
+            card.style.transition = 'all 0.6s ease';
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

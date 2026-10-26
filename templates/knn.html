@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CineMatch - KNN Recommendations</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f4e1ff 0%, #c96cc1 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+
+        /* Animated background particles */
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-20px) rotate(180deg); }
+        }
+
+        /* Header section */
+        .header {
+            background: rgba(203, 145, 226, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo {
+            width: 200px;
+            height: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: scale(1.05);
+        }
+
+        /* Main content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .title {
+            font-family: 'Quicksand', sans-serif;
+            font-size: 3rem;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 20px;
+            background-size: 300% 300%;
+            -webkit-text-fill-color: rgb(180, 79, 180);
+            animation: gradientShift 3s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .subtitle {
+            text-align: center;
+            font-size: 1.2rem;
+            margin-bottom: 40px;
+            opacity: 0.9;
+        }
+
+        /* Form styling */
+        .form-container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s ease;
+        }
+
+        .form-container:hover {
+            transform: translateY(-5px);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            font-weight: 500;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 15px 20px;
+            font-size: 1.1rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.02);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+
+        .submit-btn {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 15px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Poppins', sans-serif;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 107, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(-1px);
+        }
+
+        /* Error messages */
+        .error-message {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.5);
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 15px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Results section */
+        .results-section {
+            margin-top: 40px;
+        }
+
+        .results-title {
+            font-size: 2rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #feca57;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+
+        .movie-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .movie-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .movie-card:hover::before {
+            left: 100%;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .movie-card:hover .movie-poster {
+            transform: scale(1.1);
+        }
+
+        .movie-title {
+            font-size: 1rem;
+            font-weight: 500;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .movie-rating {
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        /* Loading animation */
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #ff6b6b;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .title {
+                font-size: 2rem;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+            
+            .movies-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                gap: 20px;
+            }
+        }
+
+        /* Additional interactive elements */
+        .emoji-float {
+            position: absolute;
+            font-size: 2rem;
+            animation: emojiFloat 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes emojiFloat {
+            0%, 100% { transform: translateY(0px) rotate(0deg); opacity: 0.7; }
+            50% { transform: translateY(-30px) rotate(10deg); opacity: 1; }
+        }
+
+        .recommendation-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: linear-gradient(45deg, #ff6b6b, #feca57);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background particles -->
+    <div class="particles" id="particles"></div>
+
+    <!-- Header -->
+    <div class="header">
+        <img src="/static/logo.png" alt="CineMatch Logo" class="logo">
+    </div>
+
+    <!-- Main content -->
+    <div class="container">
+        <h1 class="title">KNN Movie Recommendations</h1>
+        <p class="subtitle">🎬 Discover your next favorite movie</p>
+
+        <!-- Form section -->
+        <div class="form-container">
+            <form action="result3" method="post" id="recommendationForm">
+                <div class="form-group">
+                    <label for="user_id">
+                        🦸🏻‍♀️ Enter your User ID to get personalized recommendations 🦸🏻‍♂️
+                    </label>
+                    <div class="input-wrapper">
+                        <input type="text" name="user_id" id="user_id" placeholder="Enter your user ID..." required>
+                    </div>
+                </div>
+                
+                <button type="submit" class="submit-btn">
+                    ✨ Get My Recommendations
+                </button>
+
+                <!-- Flash messages -->
+                {% for message in get_flashed_messages() %}
+                    <div class="error-message">{{ message }}</div>
+                {% endfor %}
+            </form>
+
+            <!-- Loading animation -->
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Finding your perfect movies...</p>
+            </div>
+        </div>
+
+        <!-- Results section -->
+        {% if movies %}
+        <div class="results-section">
+            <h2 class="results-title">🎭 Your Top 5 Movie Recommendations</h2>
+            <div class="movies-grid">
+                {% for i in range(5) %}
+                {% if i < movies|length %}
+                <div class="movie-card" onclick="showMovieDetails('{{ movies[i] }}')">
+                    <div class="recommendation-badge">#{{ i + 1 }}</div>
+                    {% if poster_urls[i] %}
+                        <img src="{{ poster_urls[i] }}" alt="{{ movies[i] }}" class="movie-poster">
+                    {% else %}
+                        <div class="movie-poster" style="background: linear-gradient(45deg, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; font-size: 3rem;">🎬</div>
+                    {% endif %}
+                    <div class="movie-title">{{ movies[i] }}</div>
+                    <div class="movie-rating">⭐ Recommended</div>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <script>
+        // Create floating particles
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            const particleCount = 50;
+
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 6 + 's';
+                particle.style.animationDuration = (Math.random() * 3 + 3) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Add floating emojis
+        function createFloatingEmojis() {
+            const emojis = ['🎬', '🍿', '🎭', '🎪', '🌟', '✨', '🎊'];
+            const container = document.querySelector('.container');
+
+            setInterval(() => {
+                const emoji = document.createElement('div');
+                emoji.classList.add('emoji-float');
+                emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                emoji.style.left = Math.random() * 90 + '%';
+                emoji.style.top = Math.random() * 80 + '%';
+                emoji.style.animationDelay = Math.random() * 2 + 's';
+                container.appendChild(emoji);
+
+                setTimeout(() => {
+                    emoji.remove();
+                }, 4000);
+            }, 3000);
+        }
+
+        // Form submission with loading animation
+        document.getElementById('recommendationForm').addEventListener('submit', function() {
+            document.getElementById('loading').style.display = 'block';
+        });
+
+        // Movie card click handler
+        function showMovieDetails(movieTitle) {
+            alert(`🎬 ${movieTitle}\n\nThis movie was recommended based on your viewing preferences using KNN algorithm!`);
+        }
+
+        // Add hover effects to input
+        const userInput = document.getElementById('user_id');
+        userInput.addEventListener('focus', function() {
+            this.style.boxShadow = '0 0 20px rgba(255, 107, 107, 0.3)';
+        });
+
+        userInput.addEventListener('blur', function() {
+            this.style.boxShadow = 'none';
+        });
+
+        // Initialize animations
+        document.addEventListener('DOMContentLoaded', function() {
+            createParticles();
+            createFloatingEmojis();
+        });
+
+       
+    </script>
+</body>
+</html>
